@@ -28,6 +28,13 @@ class _HomeViewState extends State<HomeView> {
     print("hello");
 
     IO.Socket socket = IO.io('https://appio-chat.herokuapp.com/clients');
+
+    socket.onConnectError((data) => print("ConnectionError $data"));
+
+    socket.onConnectTimeout((data) => print("Timeout:  $data"));
+
+    socket.onError((data) => print("Error $data"));
+
     socket.onConnect((_) {
       print('connect');
       socket.emit('joinRoom', 'clients-chat');
