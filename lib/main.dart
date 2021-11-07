@@ -10,12 +10,39 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: HomeView(),
+      home: SplashView(),
     );
   }
 }
 
+class SplashView extends StatelessWidget {
+  String value = '';
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          TextField(
+            onChanged: (v) => value = v,
+          ),
+          ElevatedButton(
+            child: Text("Connect!"),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(
+              builder: (context) => HomeView(value),
+            )),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
 class HomeView extends StatefulWidget {
+  final String url;
+  HomeView(this.url);
   @override
   State<HomeView> createState() => _HomeViewState();
 }
@@ -24,11 +51,11 @@ class _HomeViewState extends State<HomeView> {
   List<Map<String, bool>> messages = [];
   TextEditingController textEditingController = TextEditingController();
 
-  IO.Socket socket;
+  late IO.Socket socket;
 
   void connect() async {
 
-    socket = IO.io('',<String, dynamic>{
+    socket = IO.io(widget.url.isNotEmpty ? widget.url : 'https://appio-chat.herokuapp.com/clients',<String, dynamic>{
       'transports': ['websocket'],
       'forceNew': true
     });
@@ -81,25 +108,37 @@ class _HomeViewState extends State<HomeView> {
         child: ListView.separated(
           separatorBuilder: (context, index) => Divider(thickness: 2),
           reverse: true,
-          itemBuilder: (context, index) => ListTile(
-            title: Text(messages[index].keys.first, ),
-            tileColor: messages[index].values.first ? Colors.blue : Colors.red,
-          ),
+          itemBuilder: (context, index) {
+            final isMe = messages[index].values.first;
+            return Padding(
+              padding: EdgeInsets.only(right: isMe ? 100 : 0, left: isMe ? 0 : 100),
+              child: ListTile(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)
+                ),
+                title: Text(messages[index].keys.first, style: TextStyle(color: Colors.white),),
+                tileColor: isMe ? Colors.blue : Colors.red,
+              ),
+            );
+          },
           itemCount: messages.length,
         ),
       );
 
-  Widget _sendField() => Row(
-        children: [
-          Expanded(
-            child: TextFormField(
-              controller: textEditingController,
+  Widget _sendField() => Container(
+    color: Colors.white,
+    child: Row(
+          children: [
+            Expanded(
+              child: TextFormField(
+                controller: textEditingController,
+              ),
             ),
-          ),
-          IconButton(
-            icon: Icon(Icons.send),
-            onPressed: sendMessage,
-          ),
-        ],
-      );
+            IconButton(
+              icon: Icon(Icons.send),
+              onPressed: sendMessage,
+            ),
+          ],
+        ),
+  );
 }
