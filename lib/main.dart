@@ -21,13 +21,17 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> {
-  List<String> messages = [];
+  List<Map<String, bool>> messages = [];
   TextEditingController textEditingController = TextEditingController();
 
-  void connect() async {
-    print("hello");
+  IO.Socket socket;
 
-    IO.Socket socket = IO.io('https://appio-chat.herokuapp.com/clients');
+  void connect() async {
+
+    socket = IO.io('',<String, dynamic>{
+      'transports': ['websocket'],
+      'forceNew': true
+    });
 
     socket.onConnectError((data) => print("ConnectionError $data"));
 
@@ -36,13 +40,11 @@ class _HomeViewState extends State<HomeView> {
     socket.onError((data) => print("Error $data"));
 
     socket.onConnect((_) {
-      print('connect');
       socket.emit('joinRoom', 'clients-chat');
     });
-    socket.on('client chat message', (d) => print(d));
-
-    Future.delayed(Duration(seconds: 3), () {
-      print(socket.connected);
+    socket.on('client chat message', (d) {
+      messages.insert(0, {d: false});
+      setState(() {});
     });
   }
 
@@ -53,14 +55,16 @@ class _HomeViewState extends State<HomeView> {
   }
 
   void sendMessage() {
-    messages.insert(0, textEditingController.text);
-    textEditingController.clear();
+    messages.insert(0, {textEditingController.text: true});
     setState(() {});
+    socket.emit('client chat message', textEditingController.text);
+    textEditingController.clear();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -78,7 +82,8 @@ class _HomeViewState extends State<HomeView> {
           separatorBuilder: (context, index) => Divider(thickness: 2),
           reverse: true,
           itemBuilder: (context, index) => ListTile(
-            title: Text(messages[index]),
+            title: Text(messages[index].keys.first, ),
+            tileColor: messages[index].values.first ? Colors.blue : Colors.red,
           ),
           itemCount: messages.length,
         ),
